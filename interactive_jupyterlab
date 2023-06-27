@@ -1,0 +1,256 @@
+#!/bin/bash
+
+## Additional modifications by Ruben Gonzalez for running script on TSCC.
+## Recommend only to use in interactive TSCC session.
+## Dated 06/27/2023
+
+## Authors: Developed by James McDougall [Github JamesMcDougallJr], Scott Sakai, 
+## and Mary Thomas. The goal of this script is to start a jupyter notebook on various 
+## HPC Systems by using the Reverse Proxy service. This makes a secure connection 
+## between the user's local machine and the RP server.
+
+## ====================================================================================
+## Usage
+##  ./start-jupyter [-p <string>] [-d <string>] [-b <string>] [-t <number>] [-s <jupyerlab, notebook>] [-i <string:image>] [-I]
+##
+##      -p: The partition your job will be started on. This can be either compute or
+##          debug. Reminder that the debug queue has a max time of 30 minutes.
+##
+##      -d: The top level directory for your jupyter notebook. 
+##          Default: /home/$USER 
+##
+##      -A: The Allocation (project) your notebook will be "charged" to. 
+##          Default: the same as your system default. This is different for every user, 
+##          but you can see your accounts using the `show_accounts` command.
+##
+##      -b: The batch script you want to submit. Of course the batch script needs to
+##          start a jupyter notebook otherwise this script will fail. Cannot be used
+##          simultaneously with the -s flag. 
+##          Default: ./batch/batch_notebook.sh
+##
+##      -t: The time in MINTUES that you want the jupyter notebook to run for.
+##          Default: 30 minutes
+##
+##      -s: The server to run for the user, can be 'notebook' for jupyter notebook or 
+##          'jupyterlab' for jupyterlab. Cannot be used simultaneously with the -b flag.
+##
+##      -g: When using gpu-shared partitions, the number of gpus to use (0-3).
+##
+##      -i: The singularity image to use as an environment for the notebook.
+##
+##      -I: print the environment variables along with submission. 
+##
+## =====================================================================================
+source $PWD/lib/check_available.sh
+source $PWD/lib/parse_time.sh
+source $PWD/lib/jup_cleanup.sh
+source $PWD/lib/remove_old_files.sh
+source $PWD/lib/read_config.sh
+source $PWD/lib/make_jupyter_config.sh
+
+quiet=0
+info=0
+force=0
+gpus=""
+jup_root_dir="/home/$USER"
+runtime="-t 00:30:00"
+project=""
+image=""
+server="notebook"
+jup_msg="Jupyter not installed. To learn how to install Jupyter using Miniconda, check out this link: https://comet-notebooks-101.readthedocs.io/en/comet/prerequisites.html"
+
+## Example Config
+#Host Comet:
+#  hostname: comet-*
+#  endpoint: comet-user-content.sdsc.edu
+#  system: slurm
+#  default-partition: compute
+#  batch-dir: slurm
+
+vars=($(read_config $(hostname -s)))
+export endpoint="${vars[1]}"
+manager="${vars[2]}"
+partition="-p ${vars[3]}"
+batch_dir="${vars[4]}"
+[[ $endpoint =~ expanse-* ]] && require_account=1 || require_account=0
+
+# Its not recommended that you change anything in this function.
+function start-jupyter () {
+    cluster=$(echo $endpoint | sed 's/-.*//')
+    if [[ $cluster = "expanse" ]]; then
+        gpus="--gpus=$gpus"
+    else
+        gpus="--gres=gpu:$gpus"
+    fi
+    # get the Reverse proxy API_TOKEN
+    response="$(curl -s -w %{http_code} https://manage.$endpoint/getlink.cgi -o -)"
+    status="$(echo $response | awk '{print $NF}')"
+    if [[ $status != 200 ]]; then
+        echo "Error connecting to reverse proxy: $status" 
+        echo $response
+        exit 1
+    fi
+    if [[ $response == Oops!* ]]; then
+        echo $response 
+        exit 1
+    fi
+    export api_token="$(echo $response | awk 'NF>1{printf $((NF-1))}' -)"
+    check_available jupyter "'$jup_msg'" || exit 1
+
+    # ensure the jupyter config directory exists and is accessible.
+    # make a temp file there for the rps to read tokens
+    jup_conf_dir="$(jupyter --config-dir)/rps"
+    mkdir -p $jup_conf_dir || (echo "Failed to create dir $jup_conf_dir" && exit 1)
+    chmod 0700 $jup_conf_dir || (echo "Failed to change permissions for $jup_conf_dir" && exit 1)
+    export config=`mktemp -p $jup_conf_dir tmp.XXXXXX.py` 
+
+    if [[ $config = "" ]]; then
+        echo "Failed to create config file" 
+        exit 1
+    fi
+
+    # remove old tmp files in this dir if still there
+    remove_old_files $jup_conf_dir 10
+
+    # Make a random ssl token
+    export jupyter_token="$(openssl rand -hex 16)"
+    make_jupyter_config $config $jupyter_token $jup_root_dir
+
+    # Give the user their url
+    export jupyter_url="https://$api_token.$endpoint?token=$jupyter_token"
+    [[ $quiet = 0 ]] && echo "Your notebook is here:"
+    [[ $quiet = 0 ]] && echo -e "\t$jupyter_url" || echo "$jupyter_url"
+    [[ $quiet = 0 ]] && echo "If you encounter any issues, please email help@xsede.org and mention the Reverse Proxy Service."
+    [[ $quiet = 0 ]] && echo "If you're not on Xsede, please email consult@sdsc.edu instead."
+
+    if [[ $info -eq 1 ]]; then
+        echo "******************Start notebook info**********************" 
+        echo "User $USER"
+        echo "On cluster $cluster"
+        echo "Using project $project" 
+        echo "Batch Script: $script"
+        echo "Partition: $partition"
+        echo "Tempfile: $config"
+        echo "Api token: $api_token"
+        echo "Jupyter token: $jupyter_token"
+        echo "Runtime: $runtime"
+    	echo "Quiet: $QUIET"
+        echo "GPUS: $gpus"
+        echo "***********************************************************"
+    fi
+
+    export start_root="$PWD"
+
+    ## You can add your own slurm directives here, but they will override
+    ## anything you gave to the start-jupyter script like the time, partition, etc
+    source $start_root/lib/get_jupyter_port.sh
+    source $start_root/lib/check_available.sh
+
+    # Get the comet node's IP (really just the hostname)
+    IP=$(hostname -s).local
+    PORT=8964
+
+    check_available jupyter-lab "Try 'conda install jupyterlab'" || exit 1
+    nohup jupyter lab --ip $IP --port $PORT --config $config --no-browser > jupyterlab.log &
+
+    # the last pid is stored in this variable
+    # PORT=$(get_jupyter_port $!)
+
+    # redeem the api_token given the untaken port
+    url='"https://manage.$endpoint/redeemtoken.cgi?token=$api_token&port=$PORT"'
+    
+    echo "Redeeming api token"
+    # Redeem the api_token
+    eval curl $url
+
+    echo "Try to remove config file"
+    # try to remove the config file.
+    # rm $config
+
+    # echo "Wait"
+    # waits for all child processes to complete, which means it waits for the jupyter notebook to be terminated
+    # wait
+}
+
+usage() { 
+    echo "Usage: $0 [-p <string>] [-d <string>] [-A <string>] [-b <string>] [-t time] [-s 'notebook' | 'jupyterlab'] [-g #gpus] [-i <string>] [-I]" 1>&2;
+    echo -e "-p: The partition your job will be started on. This can be either compute or debug. Reminder that the debug queue has a max time of 30 minutes.  " 1>&2;
+    echo -e "-d: The top level directory for your jupyter notebook. Default: /home/$USER  " 1>&2;
+    echo -e "-A: The Allocation (project) your notebook will be charged to. Default: the same as your system default. This is different for every user, but you can see your accounts using the 'show_accounts' command. " 1>&2;
+    echo -e "-b: The batch script you want to submit. Of course the batch script needs to start a jupyter notebook otherwise this script will fail. Cannot be used simultaneously with the -s flag. Default: ./batch/batch_notebook.sh.  " 1>&2;
+    echo -e "-t: The time in MINTUES that you want the jupyter notebook to run for. Default: 30 minutes. " 1>&2;
+    echo -e "-s: The server to run for the user, can be 'notebook' for jupyter notebook or 'jupyterlab' for jupyterlab. Cannot be used simultaneously with the -b flag. " 1>&2;
+    echo -e "-g: When using gpu-shared partitions, the number of gpus to use (0-3). " 1>&2;
+    echo -e "-i: The singularity image to use as an environment for the notebook. " 1>&2;
+    echo -e "-I: Print the environment variables along with submission. " 1>&2;
+
+}
+
+OPTIND=1
+err=0
+sb_conflict=0
+while [ $OPTIND -le "$#" ]
+do
+    if getopts "h?:d:A:g:s:p:b:t:i:fIq" opt; then
+        case "$opt" in
+            h|\?)
+                usage 
+                exit 0
+                ;;
+            g)  gpus="$OPTARG";;
+            s)  server="$OPTARG"
+                sb_conflict="$((sb_conflict+1))"
+                ;;
+            d)  jup_root_dir="$OPTARG";;
+            A)  project="-A $OPTARG" 
+                ;;
+            p)  partition="-p $OPTARG" ;;
+            b)  script="$OPTARG"
+                sb_conflict="$((sb_conflict+1))"
+                ;;
+            i)  export image="$OPTARG" ;;
+            t)  runtime="-t $(parse_time $OPTARG)" ;;
+            t)  input_runtime=$OPTARG 
+                runtime=$(parse_time $OPTARG) 
+		;;
+            f)  force=1 ;;
+	    q)  quiet=1 ;;
+            I)  info=1;;
+            *)  echo "Error: invalid optional argument $OPTARG" 
+                err=1
+                ;;
+        esac
+    else
+    	pos_args=1
+        err=1
+        ((OPTIND++))
+    fi
+done
+
+if [[ $pos_args ]]; then
+    echo "Encountered positional arguments where none are required."
+fi
+
+# if there is a conflict between the -s and -b flags
+if [[ $sb_conflict = 2 ]]; then
+    echo "You cannot use the -s flag and the -b flag simultaneously" 
+    err=1
+fi
+
+if [[ ${partition##* } = "debug" && ${runtime##* } > 30 ]]; then
+    echo "Invalid runtime for debug queue. Must be less than or equal to 30 minutes"
+    err=1
+fi
+
+if [[ $project = "" && $require_account = 1 ]]; then
+    echo "Expanse requires you to explicitly specify your account. Please provide the -A <Account> argument"
+    err=1
+fi
+
+if [[ $err = 1 ]]; then
+    usage 
+    exit 1
+fi
+
+start-jupyter
+
