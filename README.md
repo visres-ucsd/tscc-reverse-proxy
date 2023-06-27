@@ -1,106 +1,22 @@
-## Jupyter Reverse Proxy Service (HTTPS)
+## Jupyter Reverse Proxy Service for TSCC
 
-### For full instructions on how to run notebooks on SDSC HPC systems, see:
-[https://hpc-training.sdsc.edu/notebooks-101/notebook-101.html
-](https://hpc-training.sdsc.edu/notebooks-101/notebook-101.html
-)
-* Connection to Notebook over HTTPS using the [Reverse Proxy Service](https://github.com/sdsc-hpc-training-org/reverse-proxy)  (very secure)
-<!-- reverse-proxy 101 repo -->
+This project was forked from [sdsc-hpc-training-org/reverse-proxy](https://github.com/sdsc-hpc-training-org/reverse-proxy). See this repo for further details.
 
-Notice: the `start_notebook` script and its corresponding `batch` folder will be deprecated by December 31, 2020.
-### Overview
+Though the previous fork should support it, attempts at getting the scripts to run on TSCC nodes were unsucessful. This fork has been modified to create a working solution for running jupyter on TSCC nodes using SDSC's reverse proxy service.
 
-![](https://github.com/sdsc-hpc-training-org/notebooks-101/raw/master/Docs/images/Reverse-Proxy-Service-for-Secure-Jupyter-Notebooks-Arch.png?raw=true)
+## Usage
 
-The SDSC Jupyter Reverse Proxy Service is a prototype system that will allow users to launch standard, secure (HTTPS) Jupyter Services on on any Comet compute node using a reverse proxy server using a simple bash script called `start-jupyter`. The notebooks will be hosted on the internal cluster network as an HTTP service using standard jupyter commands. The service will then be made available to the user outside of the cluster firewall as an HTTPS connection between the external users web browser and the reverse proxy server. The goal is to minimize software changes for our users while improving the security of user notebooks running on our HPC systems. The RPS service is capable of running on any HPC system capable of supporting the RP server (needs Apache).
+1. Git clone this repo
+2. Start an interactive on TSCC. For example, creating a session with an A40 GPU and a 24 hour limit: `qsub -I -q home -l nodes=1:ppn=4:gpua40 -l walltime=24:00:00`
+3. Once the interactive session is active, be sure to activate an environment that has jupyterlab installed (and potentially any other required libraries).
+4. Run the launch script `./interactive_jupyterlab -d jupyter_root_dir`. Replace `jupyter_root_dir` with the path to the folder you would like jupyter to be rooted at (Defaults to the user's home directory). The notebook can be found by visiting the link displayed using a web browser. The link will follow a pattern similar to `https://[reverse_proxy_key].tscc-user-content.sdsc.edu?token=...`.
 
-Using the JRPS is both simple and encrypted without requiring ssh tunneling. To use RPS, SSH to connect to comet, and make sure that you have the software environment installed on the login node. Verify that you have installed the required software: 
-* `conda` for installing software packages (https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-* `mininconda` for running the notebook environment https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh)
-* `Jupyter` (notebooks, lab), and other Python packages needed for you application.
-See the [Software Preqrequisites](https://comet-notebooks-101.readthedocs.io/en/tscc/prerequisites.html) of the [Notebooks 101 tutorial](https://comet-notebooks-101.readthedocs.io/en/tscc/index.html).
-
-Note: You must have jupyter installed to run the start-jupyter command successfully.
-
-### Clone the JRPS repository
-Clone [this](https://github.com/sdsc-hpc-training-org/reverse-proxy) repository directly into your comet login node.  
+## Notes: 
+- `interactive_jupyterlab` will accept the same arguments as `start-jupyter`, but they will be ignored expect for `-d`.
+- It is NOT recommend to use `start-jupyter` as attempts to use this script were unsucessful. It has been left for reference.
+- The server is hard coded to run on port 8964. If this port has been taken by another running process, this will not work. If the process is another jupyter instance, it can be stopped using `jupyter server stop 8964`. However there may be additional "zombie" servers running. They can be listed using `jupyter server list`.
+- If prompted for a jupyter token/password, you may be able to find it by viewing `jupyterlab.log`. This can be done with `cat jupyterlab.log`. Search for a line similar to below. The token should be the text following `?token=`. Copy and paste into the token prompt.
 ```
-git clone https://github.com/sdsc-hpc-training-org/reverse-proxy.git
+Jupyter Server is running at:
+    http://tscc-gpu.local:8964/lab?token=...
 ```
-
-### Launching the Notebook
-The `start-jupyter` script performs the following tasks:
-* Sends a request to the Jupyter reverse proxy server (JRPS) to get a one-time token and a port number
-* Launches the Jupyter notebook command using the token and port number.
-* Prints a secure URL containing the token to the terminal, so that the user can copy/paste the URL into a local browser:
-```
-Your notebook is here:
-https://aversion-runaround-spearman.comet-user-content.sdsc.edu?token=099aa825b1403d58889842ab2c758885
-
-```
-
-### Usage
-`./start-jupyter [-p <cluster partition>] [-d <path to start dir>] [-A <account>] [-b <path to batch file>] [-t <time>] [-g <number of gpus (1-3)> [-i <string>] [-I]`
-
-```
-
--p: the partition to wait for. debug or compute
-    Default Partition is "compute"
-    
--d: the top-level directory of your jupyter notebook
-    Default Dir is /home/$USER
-
--A: the project allocation to be used for this notebook
-    Default Allocation is your sbatch system default allocation (also called project or group)
-    
--b: the batch script you want to submit with your notebook. Only those in the `batch` folder are supported.
-    Default batch script is ./batch/batch_notebook.sh
-    
--t: the time to run the notebook. Your account will be charged for the time you put here so be careful.
-    Default time is 30 minutes
-    
--g: number of gpus to collect for your notebook. Currently only support 1-3 on gpu-shared partitions.
-    
--i: path to a singularity image to start your jupyter notebook in. Make sure everything, including jupyter notebook and/or jupyter lab is installed in this image.
-    
--I: get extra information about the job you submitted using the script
-
-```
-(If you don't know what $USER is, try this command: `echo $USER`. This is just your comet username)
-
-### Some common examples
-Start a notebook with all defaults on any system
-`./start-jupyter`
-
-This is your waiting screen. This screen occurs before your batch job is submitted.
-![Waiting Screen](https://github.com/sdsc-hpc-training-org/reverse-proxy/blob/master/.examples_images/ex1.png?raw=true)
-
-Your notebook is ready to go!
-![Notebook Ready](https://github.com/sdsc-hpc-training-org/reverse-proxy/blob/master/.examples_images/ex2.png?raw=true)
-
-If you refresh too soon, you may see this page. This is expected and you'll just have to wait.
-![Token Mapping](https://github.com/sdsc-hpc-training-org/reverse-proxy/blob/master/.examples_images/ex3.png?raw=true)
-
-Note that the time positional argument must occur after all the flags. There will be an error if you put any flags after the positional argument.
-
-### Examples:
-To start a notebook using the debug queue in /share/apps/compute for 30 minutes: 
-`./start-jupyter -d /share/apps/compute -p debug -t 30`
-
-To start a notebook using the compute queue in your home directory for 60 minutes: 
-`./start-jupyter -d ~ -p compute -t 60`
-
-To start a jupyterlab server 
-`./start-jupyter -s jupyterlab`
-
-To start a notebook server
-`./start-jupyter -s notebook`
-
-To start a notebook with a single gpu
-`./start-jupyter -p gpu-shared -g 1 -d ~`
-
-To start a notebook with a tensorflow container
-`./start-jupyter -t 00:30:00 -g 1 -p gpu-shared -i /share/apps/gpu/singularity/images/tensorflow/tensorflow-v2.3.0-gpu-20200929.simg`
-
-To start a notebook with a pytorch container
-`./start-jupyter -t 00:30:00 -g 1 -p gpu-shared -i /share/apps/gpu/singularity/images/pytorch/pytorch-gpu.simg`
