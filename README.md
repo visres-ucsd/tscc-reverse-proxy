@@ -6,7 +6,7 @@ Though the previous fork should support it, attempts at getting the scripts to r
 
 ## Usage
 
-1. Git clone this repo
+1. Git clone this repo. `git clone https://github.com/visres-ucsd/tscc-reverse-proxy.git`
 2. Start an interactive on TSCC. For example, creating a session with an A40 GPU and a 24 hour limit: `qsub -I -q home -l nodes=1:ppn=4:gpua40 -l walltime=24:00:00`
 3. Once the interactive session is active, be sure to activate an environment that has jupyterlab installed (and potentially any other required libraries).
 4. Run the launch script `./interactive_jupyterlab -d jupyter_root_dir`. Replace `jupyter_root_dir` with the path to the folder you would like jupyter to be rooted at (Defaults to the user's home directory). The notebook can be found by visiting the link displayed using a web browser. The link will follow a pattern similar to `https://[reverse_proxy_key].tscc-user-content.sdsc.edu?token=...`.
