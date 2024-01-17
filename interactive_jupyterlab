@@ -148,7 +148,7 @@ function start-jupyter () {
 
     # Get the comet node's IP (really just the hostname)
     IP=$(hostname -s).local
-    PORT=8964
+    PORT=8888
 
     check_available jupyter-lab "Try 'conda install jupyterlab'" || exit 1
     nohup jupyter lab --ip $IP --port $PORT --config $config --no-browser > jupyterlab.log &
