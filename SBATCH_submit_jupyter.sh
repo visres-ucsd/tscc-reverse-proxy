@@ -11,26 +11,22 @@
 #
 # Job submission options:
 #
-# Specify subimssion queue / account
-#PBS -q home
-#PBS -A visres-group
-# Specify job name
-#PBS -N python-gpu
-# Job needs 1 node, 4 (out of 16) cores to get 1 GPU
-#PBS -l nodes=1:ppn=4:gpua40
-# Default walltime of 4 days
-#PBS -l walltime=96:00:00
-# Don't send any emails about the job
-#PBS -m n
-#
+#SBATCH -J python-gpu       #Optional, short for --job-name
+#SBATCH -N 1                #Number of nodes
+#SBATCH --tasks-per-node 7 #Number of tasks per node
+#SBATCH -G 1
+#SBATCH -c 8                #Number of threads per process
+#SBATCH -t 00:01:00         #Short for --time walltime limit
+#SBATCH -o slurm-%j.err-%N  #standard output name
+#SBATCH -e slurm-%j.err-%N  #Optional, standard error name
+#SBATCH -p condo            #Partition name
+#SBATCH -q condo            #QOS name
+#SBATCH -A <allocation>     #Allocation name
 
-# Set some required paths
-# export LD_LIBRARY_PATH=/opt/gnu/gcc/lib64/:$LD_LIBRARY_PATH
-# PYTHON_EXE=/home/r2gonzalez/miniconda3/envs/dl4cv_p39/bin/python
 
 # Get script, shift to remove from args
 script=$1
 shift
 
 # Run R script, passing through the arguments
-conda run -n tf-gpu-alt bash /home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh
+conda run -n tf-gpu bash /home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh
