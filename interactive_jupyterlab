@@ -151,7 +151,7 @@ function start-jupyter () {
     PORT=8888
 
     check_available jupyter-lab "Try 'conda install jupyterlab'" || exit 1
-    nohup jupyter lab --ip $IP --port $PORT --config $config --no-browser > jupyterlab.log &
+    nohup jupyter lab --ip '0.0.0.0' --port $PORT --config $config --no-browser > jupyterlab.log &
 
     # the last pid is stored in this variable
     # PORT=$(get_jupyter_port $!)
