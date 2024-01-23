@@ -11,7 +11,7 @@
 
 ## ====================================================================================
 ## Usage
-##  ./start-jupyter [-p <string>] [-d <string>] [-b <string>] [-t <number>] [-s <jupyerlab, notebook>] [-i <string:image>] [-I]
+##  ./start-jupyter [-p <string>] [-d <string>] [-b <string>] [-t <number>] [-s <jupyerlab, notebook>] [-i <string:image>] [-P <port-number>] [-I]
 ##
 ##      -p: The partition your job will be started on. This can be either compute or
 ##          debug. Reminder that the debug queue has a max time of 30 minutes.
@@ -37,6 +37,8 @@
 ##      -g: When using gpu-shared partitions, the number of gpus to use (0-3).
 ##
 ##      -i: The singularity image to use as an environment for the notebook.
+##
+##      -P: The preferred jupyter port. 
 ##
 ##      -I: print the environment variables along with submission. 
 ##
@@ -148,7 +150,6 @@ function start-jupyter () {
 
     # Get the comet node's IP (really just the hostname)
     IP=$(hostname -s).local
-    PORT=8888
 
     check_available jupyter-lab "Try 'conda install jupyterlab'" || exit 1
     nohup jupyter lab --ip '0.0.0.0' --port $PORT --config $config --no-browser > jupyterlab.log &
@@ -182,6 +183,7 @@ usage() {
     echo -e "-s: The server to run for the user, can be 'notebook' for jupyter notebook or 'jupyterlab' for jupyterlab. Cannot be used simultaneously with the -b flag. " 1>&2;
     echo -e "-g: When using gpu-shared partitions, the number of gpus to use (0-3). " 1>&2;
     echo -e "-i: The singularity image to use as an environment for the notebook. " 1>&2;
+    echo -e "-P: The preferred jupyter port" 1>&2;
     echo -e "-I: Print the environment variables along with submission. " 1>&2;
 
 }
@@ -189,9 +191,10 @@ usage() {
 OPTIND=1
 err=0
 sb_conflict=0
+PORT=8888
 while [ $OPTIND -le "$#" ]
 do
-    if getopts "h?:d:A:g:s:p:b:t:i:fIq" opt; then
+    if getopts "h?:d:A:g:s:p:b:t:i:P:fIq" opt; then
         case "$opt" in
             h|\?)
                 usage 
@@ -213,6 +216,7 @@ do
             t)  input_runtime=$OPTARG 
                 runtime=$(parse_time $OPTARG) 
 		;;
+            P) PORT="$OPTARG";;
             f)  force=1 ;;
 	    q)  quiet=1 ;;
             I)  info=1;;
@@ -226,6 +230,8 @@ do
         ((OPTIND++))
     fi
 done
+
+echo "Using port number $PORT"
 
 if [[ $pos_args ]]; then
     echo "Encountered positional arguments where none are required."
