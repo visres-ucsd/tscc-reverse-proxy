@@ -16,5 +16,5 @@ Though the previous fork should support it, attempts at getting the scripts to r
 ## Notes: 
 - `interactive_jupyterlab` will accept the same arguments as `start-jupyter`, but they will be ignored expect for `-d`.
 - It is NOT recommended to use `start-jupyter` as attempts to use this script were unsucessful. It has been left for reference.
-- The server is hard coded to run on port 8964. If this port has been taken by another running process, this will not work. If the process is another jupyter instance, it can be stopped using `jupyter server stop 8964`. However there may be additional "zombie" servers running. They can be listed using `jupyter server list`.
-- If prompted for a jupyter token/password, you may be able to find it by using `jupyter server list`
+- By defaults, this uses port 8888. You may specify a port number using the `-P` parameter. However, if the port is already in use by another process, the reverse proxy will not map correctly. This may result in "zombie" servers. To list these servers, use `jupyter server list`. They can be stopped using `jupyter server stop <zombie server port number>`
+- If you lose track of your token, it can be displayed with `jupyter server list`.
