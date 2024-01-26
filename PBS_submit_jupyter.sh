@@ -32,5 +32,5 @@
 script=$1
 shift
 
-# Run R script, passing through the arguments
+# Use conda env to start jupyter
 conda run -n tf-gpu-alt bash /home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh

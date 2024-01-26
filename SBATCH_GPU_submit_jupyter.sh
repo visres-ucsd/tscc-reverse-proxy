@@ -13,8 +13,9 @@
 #
 #SBATCH -J python-gpu       #Optional, short for --job-name
 #SBATCH -N 1                #Number of nodes
-#SBATCH -n 7                #Number of tasks per node
-#SBATCH --mem 20G           #Memory allocation
+#SBATCH --tasks-per-node 7 #Number of tasks per node
+#SBATCH -G 1
+#SBATCH -c 8                #Number of threads per process
 #SBATCH -t 01:00:00         #Short for --time walltime limit
 #SBATCH -o slurm-%j.err-%N  #standard output name
 #SBATCH -e slurm-%j.err-%N  #Optional, standard error name
