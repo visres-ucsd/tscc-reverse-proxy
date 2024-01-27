@@ -16,8 +16,8 @@
 #SBATCH -n 7                #Number of tasks per node
 #SBATCH --mem 20G           #Memory allocation
 #SBATCH -t 24:00:00         #Short for --time walltime limit
-#SBATCH -o job_out/slurm-%j.err-%N  #standard output name
-#SBATCH -e job_out/slurm-%j.err-%N  #Optional, standard error name
+#SBATCH -o slurm-%j.err-%N  #standard output name
+#SBATCH -e slurm-%j.err-%N  #Optional, standard error name
 #SBATCH -p condo            #Partition name
 #SBATCH -q condo            #QOS name
 #SBATCH -A ddp364           #Allocation name
