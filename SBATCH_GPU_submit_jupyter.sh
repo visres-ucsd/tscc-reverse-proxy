@@ -29,4 +29,4 @@
 # shift
 
 # Use conda env to start jupyter
-conda run -n tf-gpu bash /home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh
+conda run -n tf-gpu bash /tscc/nfs/home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh

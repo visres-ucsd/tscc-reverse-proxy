@@ -11,7 +11,7 @@
 #
 # Job submission options:
 #
-#SBATCH -J python-gpu       #Optional, short for --job-name
+#SBATCH -J jupyterlab          #Optional, short for --job-name
 #SBATCH -N 1                #Number of nodes
 #SBATCH -n 7                #Number of tasks per node
 #SBATCH --mem 20G           #Memory allocation
@@ -28,4 +28,4 @@
 # shift
 
 # Use conda env to start jupyter
-conda run -n tf-gpu bash /home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh
+conda run -n tf-gpu bash /tscc/nfs/home/r2gonzalez/tscc-reverse-proxy/independent_jupyter.sh
