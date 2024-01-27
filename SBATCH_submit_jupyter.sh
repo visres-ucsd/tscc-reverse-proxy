@@ -7,7 +7,7 @@
 #
 # Usage:
 #
-# qsub runPythonGPU.sh -F "</path/to/python-script.py> [args to python script]"
+# sbatch SBATCH_submit_jupyter.sh
 #
 # Job submission options:
 #
