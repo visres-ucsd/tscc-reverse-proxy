@@ -11,7 +11,7 @@
 #
 # Job submission options:
 #
-#SBATCH -J python-gpu       #Optional, short for --job-name
+#SBATCH -J jupyter          #Optional, short for --job-name
 #SBATCH -N 1                #Number of nodes
 #SBATCH --tasks-per-node 7 #Number of tasks per node
 #SBATCH -G 1

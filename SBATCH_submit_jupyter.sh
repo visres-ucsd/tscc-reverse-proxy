@@ -11,13 +11,13 @@
 #
 # Job submission options:
 #
-#SBATCH -J jupyterlab          #Optional, short for --job-name
+#SBATCH -J jupyter          #Optional, short for --job-name
 #SBATCH -N 1                #Number of nodes
 #SBATCH -n 7                #Number of tasks per node
 #SBATCH --mem 20G           #Memory allocation
-#SBATCH -t 01:00:00         #Short for --time walltime limit
-#SBATCH -o slurm-%j.err-%N  #standard output name
-#SBATCH -e slurm-%j.err-%N  #Optional, standard error name
+#SBATCH -t 24:00:00         #Short for --time walltime limit
+#SBATCH -o job_out/slurm-%j.err-%N  #standard output name
+#SBATCH -e job_out/slurm-%j.err-%N  #Optional, standard error name
 #SBATCH -p condo            #Partition name
 #SBATCH -q condo            #QOS name
 #SBATCH -A ddp364           #Allocation name
