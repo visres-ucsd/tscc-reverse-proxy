@@ -14,13 +14,14 @@
 #SBATCH -J jupyter          #Optional, short for --job-name
 #SBATCH -N 1                #Number of nodes
 #SBATCH --tasks-per-node 7 #Number of tasks per node
+#SBATCH -p a40              #Partition name
 #SBATCH -G 1
 #SBATCH -c 8                #Number of threads per process
-#SBATCH -t 01:00:00         #Short for --time walltime limit
+#SBATCH -t 04:00:00         #Short for --time walltime limit
 #SBATCH -o slurm-%j.err-%N  #standard output name
 #SBATCH -e slurm-%j.err-%N  #Optional, standard error name
-#SBATCH -p condo            #Partition name
-#SBATCH -q condo            #QOS name
+#SBATCH --mem 64G           #Memory allocation
+#SBATCH -q hca-ddp364       #QOS name
 #SBATCH -A ddp364           #Allocation name
 
 

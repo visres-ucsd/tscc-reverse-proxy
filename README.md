@@ -8,8 +8,8 @@ Though the previous fork should support it, attempts at getting the scripts to r
 
 1. Git clone this repo. `git clone https://github.com/visres-ucsd/tscc-reverse-proxy.git`
 2. Start an interactive on TSCC. For example:
-    - Requesting 32GB of RAM, and a 1 hour walltime on a condo node: `srun -N 1 -n 4 --mem 32G -t 01:00:00 -p condo -q condo -A ddp364 --pty /bin/bash`
-    - Requesting a GPU, 32GB of RAM, and a 1 hour walltime on a hotel node: `srun -N 1 -n 4 -G 1 --mem 32G -t 01:00:00 -p hotel-gpu -q hotel-gpu -A ddp364 --pty /bin/bash`
+    - Requesting 32GB of RAM, and a 1 hour walltime on the HGC condo node: `srun -N 1 -n 4 --mem 32G -t 01:00:00 -p condo -q hca-ddp364 -A ddp364 --pty /bin/bash`
+    - Requesting a single A40 GPU, and a 1 hour walltime on the HGC condo node: `srun -N 1 -n 4 -t 1:00:00 -p a40 -q hca-ddp364 --gpus 1 -A ddp364 --pty /bin/bash`
 3. Once the interactive session is active, be sure to activate an environment that has jupyterlab installed (and potentially any other required libraries).
 4. Run the launch script `./interactive_jupyterlab -d jupyter_root_dir`. Replace `jupyter_root_dir` with the path to the folder you would like jupyter to be rooted at (Defaults to the user's home directory). The notebook can be found by visiting the link displayed using a web browser. The link will follow a pattern similar to `https://[reverse_proxy_key].tscc-user-content.sdsc.edu?token=...`.
 
